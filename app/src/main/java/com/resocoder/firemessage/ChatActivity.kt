@@ -3,29 +3,28 @@ package com.resocoder.firemessage
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
-import android.support.v7.widget.LinearLayoutManager
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 import com.resocoder.firemessage.model.ImageMessage
-import com.resocoder.firemessage.model.MessageType
 import com.resocoder.firemessage.model.TextMessage
 import com.resocoder.firemessage.model.User
 import com.resocoder.firemessage.util.FirestoreUtil
 import com.resocoder.firemessage.util.StorageUtil
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.Section
+import com.xwray.groupie.kotlinandroidextensions.GroupieViewHolder
 import com.xwray.groupie.kotlinandroidextensions.Item
-import com.xwray.groupie.kotlinandroidextensions.ViewHolder
 import kotlinx.android.synthetic.main.activity_chat.*
-import org.jetbrains.anko.startActivityForResult
-import org.jetbrains.anko.toast
 import java.io.ByteArrayOutputStream
 import java.util.*
 
 private const val RC_SELECT_IMAGE = 2
+
+private const val TAG = "ChatActivity"
 
 class ChatActivity : AppCompatActivity() {
 
@@ -47,8 +46,8 @@ class ChatActivity : AppCompatActivity() {
         FirestoreUtil.getCurrentUser {
             currentUser = it
         }
-
-        otherUserId = intent.getStringExtra(AppConstants.USER_ID)
+        if (intent.extras != null)
+            otherUserId = intent.getStringExtra(AppConstants.USER_ID)!!
         FirestoreUtil.getOrCreateChatChannel(otherUserId) { channelId ->
             currentChannelId = channelId
 
@@ -76,6 +75,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+
         if (requestCode == RC_SELECT_IMAGE && resultCode == Activity.RESULT_OK &&
                 data != null && data.data != null) {
             val selectedImagePath = data.data
@@ -95,13 +95,14 @@ class ChatActivity : AppCompatActivity() {
                 FirestoreUtil.sendMessage(messageToSend, currentChannelId)
             }
         }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     private fun updateRecyclerView(messages: List<Item>) {
         fun init() {
             recycler_view_messages.apply {
                 layoutManager = LinearLayoutManager(this@ChatActivity)
-                adapter = GroupAdapter<ViewHolder>().apply {
+                adapter = GroupAdapter<GroupieViewHolder>().apply {
                     messagesSection = Section(messages)
                     this.add(messagesSection)
                 }
@@ -116,6 +117,6 @@ class ChatActivity : AppCompatActivity() {
         else
             updateItems()
 
-        recycler_view_messages.scrollToPosition(recycler_view_messages.adapter.itemCount - 1)
+        recycler_view_messages.scrollToPosition(recycler_view_messages.adapter?.itemCount!! - 1)
     }
 }

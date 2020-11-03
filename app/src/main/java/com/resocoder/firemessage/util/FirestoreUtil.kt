@@ -17,8 +17,10 @@ object FirestoreUtil {
     private val firestoreInstance: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     private val currentUserDocRef: DocumentReference
-        get() = firestoreInstance.document("users/${FirebaseAuth.getInstance().currentUser?.uid
-                ?: throw NullPointerException("UID is null.")}")
+        get() = firestoreInstance.document("users/${
+            FirebaseAuth.getInstance().currentUser?.uid
+                    ?: throw NullPointerException("UID is null.")
+        }")
 
     private val chatChannelsCollectionRef = firestoreInstance.collection("chatChannels")
 
@@ -27,12 +29,8 @@ object FirestoreUtil {
             if (!documentSnapshot.exists()) {
                 val newUser = User(FirebaseAuth.getInstance().currentUser?.displayName ?: "",
                         "", null, mutableListOf())
-                currentUserDocRef.set(newUser).addOnSuccessListener {
-                    onComplete()
-                }
-            }
-            else
-                onComplete()
+                currentUserDocRef.set(newUser).addOnSuccessListener { onComplete() }
+            } else { onComplete() }
         }
     }
 

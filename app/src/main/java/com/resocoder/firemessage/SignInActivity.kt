@@ -2,20 +2,17 @@ package com.resocoder.firemessage
 
 import android.app.Activity
 import android.content.Intent
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.example.myfiremessage.common.setProgressDialog
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.ErrorCodes
 import com.firebase.ui.auth.IdpResponse
-import com.google.firebase.iid.FirebaseInstanceId
+import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.messaging.FirebaseMessaging
 import com.resocoder.firemessage.service.MyFirebaseInstanceIDService
 import com.resocoder.firemessage.util.FirestoreUtil
 import kotlinx.android.synthetic.main.activity_sign_in.*
-import org.jetbrains.anko.clearTask
-import org.jetbrains.anko.design.longSnackbar
-import org.jetbrains.anko.indeterminateProgressDialog
-import org.jetbrains.anko.intentFor
-import org.jetbrains.anko.newTask
 
 class SignInActivity : AppCompatActivity() {
 
@@ -47,24 +44,23 @@ class SignInActivity : AppCompatActivity() {
             val response = IdpResponse.fromResultIntent(data)
 
             if (resultCode == Activity.RESULT_OK) {
-                val progressDialog = indeterminateProgressDialog("Setting up your account")
+                val progressDialog = setProgressDialog(this, "Setting up your account")
                 FirestoreUtil.initCurrentUserIfFirstTime {
-                    startActivity(intentFor<MainActivity>().newTask().clearTask())
+                    startActivity(Intent(this, MainActivity::class.java))
 
-                    val registrationToken = FirebaseInstanceId.getInstance().token
-                    MyFirebaseInstanceIDService.addTokenToFirestore(registrationToken)
+                    val registrationToken = FirebaseMessaging.getInstance().token
+                    MyFirebaseInstanceIDService.addTokenToFirestore(registrationToken.result)
 
                     progressDialog.dismiss()
                 }
-            }
-            else if (resultCode == Activity.RESULT_CANCELED) {
+            } else if (resultCode == Activity.RESULT_CANCELED) {
                 if (response == null) return
 
                 when (response.error?.errorCode) {
                     ErrorCodes.NO_NETWORK ->
-                            longSnackbar(constraint_layout, "No network")
+                        Snackbar.make(constraint_layout, "No network", Snackbar.LENGTH_LONG).show()
                     ErrorCodes.UNKNOWN_ERROR ->
-                        longSnackbar(constraint_layout, "Unknown error")
+                        Snackbar.make(constraint_layout, "Unknown error", Snackbar.LENGTH_LONG).show()
                 }
             }
         }

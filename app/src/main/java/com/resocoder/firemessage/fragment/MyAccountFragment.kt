@@ -4,14 +4,16 @@ package com.resocoder.firemessage.fragment
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
 import com.firebase.ui.auth.AuthUI
-
 import com.resocoder.firemessage.R
 import com.resocoder.firemessage.SignInActivity
 import com.resocoder.firemessage.glide.GlideApp
@@ -19,10 +21,6 @@ import com.resocoder.firemessage.util.FirestoreUtil
 import com.resocoder.firemessage.util.StorageUtil
 import kotlinx.android.synthetic.main.fragment_my_account.*
 import kotlinx.android.synthetic.main.fragment_my_account.view.*
-import org.jetbrains.anko.clearTask
-import org.jetbrains.anko.newTask
-import org.jetbrains.anko.support.v4.intentFor
-import org.jetbrains.anko.support.v4.toast
 import java.io.ByteArrayOutputStream
 
 
@@ -55,14 +53,14 @@ class MyAccountFragment : Fragment() {
                 else
                     FirestoreUtil.updateCurrentUser(editText_name.text.toString(),
                             editText_bio.text.toString(), null)
-                toast("Saving")
+                Toast.makeText(requireContext(), "Saving", Toast.LENGTH_SHORT).show()
             }
 
             btn_sign_out.setOnClickListener {
                 AuthUI.getInstance()
-                        .signOut(this@MyAccountFragment.context!!)
+                        .signOut(requireContext())
                         .addOnCompleteListener {
-                            startActivity(intentFor<SignInActivity>().newTask().clearTask())
+                            startActivity(Intent(requireContext(), SignInActivity::class.java))
                         }
             }
         }
@@ -74,14 +72,20 @@ class MyAccountFragment : Fragment() {
         if (requestCode == RC_SELECT_IMAGE && resultCode == Activity.RESULT_OK &&
                 data != null && data.data != null) {
             val selectedImagePath = data.data
-            val selectedImageBmp = MediaStore.Images.Media
-                    .getBitmap(activity?.contentResolver, selectedImagePath)
-
+            val selectedImageBmp = if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                // To handle deprication use
+                val source =
+                        ImageDecoder.createSource(activity?.contentResolver!!, selectedImagePath!!)
+                ImageDecoder.decodeBitmap(source)
+            } else {
+                // Use older version
+                MediaStore.Images.Media.getBitmap(activity?.contentResolver, selectedImagePath)
+            }
             val outputStream = ByteArrayOutputStream()
             selectedImageBmp.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
             selectedImageBytes = outputStream.toByteArray()
 
-            GlideApp.with(this)
+            GlideApp.with(requireContext())
                     .load(selectedImageBytes)
                     .into(imageView_profile_picture)
 
@@ -96,7 +100,7 @@ class MyAccountFragment : Fragment() {
                 editText_name.setText(user.name)
                 editText_bio.setText(user.bio)
                 if (!pictureJustChanged && user.profilePicturePath != null)
-                    GlideApp.with(this)
+                    GlideApp.with(requireContext())
                             .load(StorageUtil.pathToReference(user.profilePicturePath))
                             .placeholder(R.drawable.ic_account_circle_black_24dp)
                             .into(imageView_profile_picture)
